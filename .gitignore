@@ -1,0 +1,16 @@
+# 环境变量（最重要！API Key 不能泄露）
+.env
+*.env
+
+# Python
+__pycache__/
+*.pyc
+venv/
+.venv/
+
+# 系统文件
+.DS_Store
+
+# IDE
+.vscode/
+.idea/
