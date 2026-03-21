@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Care Plan Generator</title>
+</head>
+<body>
+    <h1>Care Plan Generator</h1>
+    <form id="careplan-form" method="post" action="/generate/">
+        {% csrf_token %}
+        <label>Patient First Name:</label><input type="text" name="first_name"><br>
+        <label>Patient Last Name:</label><input type="text" name="last_name"><br>
+        <label>Medication:</label><input type="text" name="medication"><br>
+        <label>Primary Diagnosis:</label><input type="text" name="diagnosis"><br>
+        <button type="submit">Generate Care Plan</button>
+    </form>
+
+    {% if careplan %}
+        <h2>Generated Care Plan</h2>
+        <pre>{{ careplan }}</pre>
+    {% endif %}
+</body>
+</html>
