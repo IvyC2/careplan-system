@@ -3,21 +3,33 @@
 <head>
     <meta charset="UTF-8">
     <title>Care Plan Generator</title>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 800px; margin: 40px auto; padding: 0 20px; }
+        h1 { color: #2c5282; }
+        label { display: block; margin-top: 10px; font-weight: bold; }
+        input { width: 100%; padding: 8px; margin-top: 4px; box-sizing: border-box; }
+        button { margin-top: 20px; padding: 10px 20px; background: #2c5282; color: white; border: none; cursor: pointer; border-radius: 4px; }
+        .careplan { background: #f7fafc; border-left: 4px solid #2c5282; padding: 20px; margin-top: 20px; white-space: pre-wrap; line-height: 1.6; }
+    </style>
 </head>
 <body>
     <h1>Care Plan Generator</h1>
-    <form id="careplan-form" method="post" action="/generate/">
+    <form method="post" action="/generate/">
         {% csrf_token %}
-        <label>Patient First Name:</label><input type="text" name="first_name"><br>
-        <label>Patient Last Name:</label><input type="text" name="last_name"><br>
-        <label>Medication:</label><input type="text" name="medication"><br>
-        <label>Primary Diagnosis:</label><input type="text" name="diagnosis"><br>
+        <label>Patient First Name:</label>
+        <input type="text" name="first_name">
+        <label>Patient Last Name:</label>
+        <input type="text" name="last_name">
+        <label>Medication:</label>
+        <input type="text" name="medication">
+        <label>Primary Diagnosis:</label>
+        <input type="text" name="diagnosis">
         <button type="submit">Generate Care Plan</button>
     </form>
 
     {% if careplan %}
         <h2>Generated Care Plan</h2>
-        <pre>{{ careplan }}</pre>
+        <div class="careplan">{{ careplan.text }}</div>
     {% endif %}
 </body>
 </html>
