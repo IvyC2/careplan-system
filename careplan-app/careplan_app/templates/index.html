@@ -1,35 +1,480 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <title>Care Plan Generator</title>
-    <style>
-        body { font-family: Arial, sans-serif; max-width: 800px; margin: 40px auto; padding: 0 20px; }
-        h1 { color: #2c5282; }
-        label { display: block; margin-top: 10px; font-weight: bold; }
-        input { width: 100%; padding: 8px; margin-top: 4px; box-sizing: border-box; }
-        button { margin-top: 20px; padding: 10px 20px; background: #2c5282; color: white; border: none; cursor: pointer; border-radius: 4px; }
-        .careplan { background: #f7fafc; border-left: 4px solid #2c5282; padding: 20px; margin-top: 20px; white-space: pre-wrap; line-height: 1.6; }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Care Plan Generator</title>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --navy:   #1a2b4a;
+      --teal:   #0d7377;
+      --teal-l: #14a8ad;
+      --cream:  #f5f2eb;
+      --white:  #ffffff;
+      --gray:   #6b7a8d;
+      --border: #d6d0c4;
+      --red:    #c0392b;
+      --radius: 8px;
+    }
+
+    body {
+      font-family: 'DM Sans', sans-serif;
+      background: var(--cream);
+      color: var(--navy);
+      min-height: 100vh;
+      padding: 48px 20px;
+    }
+
+    .container { max-width: 780px; margin: 0 auto; }
+
+    /* Header */
+    header { margin-bottom: 40px; }
+    header h1 {
+      font-family: 'DM Serif Display', serif;
+      font-size: 2.4rem;
+      color: var(--navy);
+      line-height: 1.2;
+    }
+    header p {
+      margin-top: 8px;
+      color: var(--gray);
+      font-size: 0.95rem;
+      font-weight: 300;
+    }
+
+    /* Card */
+    .card {
+      background: var(--white);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 32px;
+      margin-bottom: 24px;
+    }
+
+    .section-title {
+      font-size: 0.7rem;
+      font-weight: 600;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--teal);
+      margin-bottom: 20px;
+      padding-bottom: 10px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    /* Grid */
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; }
+    @media (max-width: 600px) {
+      .grid-2, .grid-3 { grid-template-columns: 1fr; }
+    }
+
+    /* Fields */
+    .field { display: flex; flex-direction: column; gap: 6px; margin-bottom: 16px; }
+    .field:last-child { margin-bottom: 0; }
+
+    label {
+      font-size: 0.8rem;
+      font-weight: 500;
+      color: var(--navy);
+      letter-spacing: 0.02em;
+    }
+    label span.hint {
+      font-weight: 300;
+      color: var(--gray);
+      margin-left: 4px;
+    }
+
+    input[type="text"],
+    input[type="date"],
+    textarea {
+      width: 100%;
+      padding: 10px 12px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      font-family: 'DM Sans', sans-serif;
+      font-size: 0.9rem;
+      color: var(--navy);
+      background: #fafaf8;
+      transition: border-color 0.15s, box-shadow 0.15s;
+      outline: none;
+    }
+    input:focus, textarea:focus {
+      border-color: var(--teal);
+      box-shadow: 0 0 0 3px rgba(13,115,119,0.1);
+      background: var(--white);
+    }
+    textarea { resize: vertical; min-height: 90px; line-height: 1.5; }
+
+    /* Dynamic list fields */
+    .tag-list { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 8px; min-height: 0; }
+    .tag {
+      display: inline-flex; align-items: center; gap: 6px;
+      background: #e8f4f4; color: var(--teal);
+      border: 1px solid #b2dcdd;
+      border-radius: 100px;
+      padding: 4px 12px;
+      font-size: 0.8rem; font-weight: 500;
+    }
+    .tag button {
+      background: none; border: none; cursor: pointer;
+      color: var(--teal); font-size: 1rem; line-height: 1;
+      padding: 0; margin: 0;
+    }
+    .tag-input-row { display: flex; gap: 8px; }
+    .tag-input-row input { flex: 1; }
+    .btn-add {
+      padding: 10px 16px;
+      background: var(--navy);
+      color: var(--white);
+      border: none; border-radius: var(--radius);
+      font-family: 'DM Sans', sans-serif;
+      font-size: 0.85rem; font-weight: 500;
+      cursor: pointer; white-space: nowrap;
+      transition: background 0.15s;
+    }
+    .btn-add:hover { background: var(--teal); }
+
+    /* Submit button */
+    .btn-submit {
+      width: 100%;
+      padding: 14px;
+      background: var(--teal);
+      color: var(--white);
+      border: none; border-radius: var(--radius);
+      font-family: 'DM Sans', sans-serif;
+      font-size: 1rem; font-weight: 600;
+      cursor: pointer; letter-spacing: 0.02em;
+      transition: background 0.2s, transform 0.1s;
+      margin-top: 8px;
+    }
+    .btn-submit:hover { background: var(--navy); }
+    .btn-submit:active { transform: scale(0.99); }
+    .btn-submit:disabled { background: var(--gray); cursor: not-allowed; }
+
+    /* Status / result */
+    #status-msg {
+      text-align: center;
+      padding: 12px;
+      font-size: 0.9rem;
+      color: var(--gray);
+      display: none;
+    }
+
+    #result-card { display: none; }
+
+    .result-header {
+      display: flex; align-items: center; gap: 12px;
+      margin-bottom: 20px;
+    }
+    .badge {
+      font-size: 0.7rem; font-weight: 600; letter-spacing: 0.08em;
+      text-transform: uppercase; padding: 4px 10px;
+      border-radius: 100px;
+    }
+    .badge.completed { background: #d4edda; color: #1a6630; }
+    .badge.failed    { background: #fde8e8; color: var(--red); }
+    .badge.processing{ background: #fff3cd; color: #856404; }
+    .badge.pending   { background: #e7f3ff; color: #1a4a6e; }
+
+    .meta-grid {
+      display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+      gap: 12px; margin-bottom: 24px;
+    }
+    .meta-item { }
+    .meta-label { font-size: 0.7rem; font-weight: 600; color: var(--gray); text-transform: uppercase; letter-spacing: 0.08em; }
+    .meta-value { font-size: 0.9rem; color: var(--navy); margin-top: 2px; }
+
+    .careplan-body {
+      background: #fafaf8;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 24px;
+      white-space: pre-wrap;
+      line-height: 1.75;
+      font-size: 0.9rem;
+      color: var(--navy);
+      font-family: 'DM Sans', sans-serif;
+    }
+
+    .error-box {
+      background: #fde8e8; border: 1px solid #f5c0c0;
+      border-radius: var(--radius); padding: 16px;
+      color: var(--red); font-size: 0.9rem; display: none;
+    }
+  </style>
 </head>
 <body>
-    <h1>Care Plan Generator</h1>
-    <form method="post" action="/generate/">
-        {% csrf_token %}
-        <label>Patient First Name:</label>
-        <input type="text" name="first_name">
-        <label>Patient Last Name:</label>
-        <input type="text" name="last_name">
-        <label>Medication:</label>
-        <input type="text" name="medication">
-        <label>Primary Diagnosis:</label>
-        <input type="text" name="diagnosis">
-        <button type="submit">Generate Care Plan</button>
-    </form>
+<div class="container">
 
-    {% if careplan %}
-        <h2>Generated Care Plan</h2>
-        <div class="careplan">{{ careplan.text }}</div>
-    {% endif %}
+  <header>
+    <h1>Care Plan Generator</h1>
+    <p>Complete the form below to generate an AI-assisted care plan.</p>
+  </header>
+
+  <div id="error-box" class="error-box"></div>
+
+  <form id="careplan-form">
+    {% csrf_token %}
+
+    <!-- Patient -->
+    <div class="card">
+      <div class="section-title">Patient Information</div>
+      <div class="grid-2">
+        <div class="field">
+          <label>First Name</label>
+          <input type="text" name="first_name" placeholder="John" required>
+        </div>
+        <div class="field">
+          <label>Last Name</label>
+          <input type="text" name="last_name" placeholder="Doe" required>
+        </div>
+      </div>
+      <div class="grid-2">
+        <div class="field">
+          <label>MRN <span class="hint">6 digits</span></label>
+          <input type="text" name="mrn" placeholder="123456" maxlength="6">
+        </div>
+        <div class="field">
+          <label>Date of Birth</label>
+          <input type="date" name="date_of_birth">
+        </div>
+      </div>
+    </div>
+
+    <!-- Provider -->
+    <div class="card">
+      <div class="section-title">Provider Information <span style="font-weight:300;text-transform:none;letter-spacing:0;color:var(--gray);font-size:0.75rem;">(optional — leave blank to use system default)</span></div>
+      <div class="grid-3">
+        <div class="field">
+          <label>First Name</label>
+          <input type="text" name="provider_first_name" placeholder="Jane">
+        </div>
+        <div class="field">
+          <label>Last Name</label>
+          <input type="text" name="provider_last_name" placeholder="Smith">
+        </div>
+        <div class="field">
+          <label>NPI <span class="hint">10 digits</span></label>
+          <input type="text" name="provider_npi" placeholder="1234567890" maxlength="10">
+        </div>
+      </div>
+    </div>
+
+    <!-- Order -->
+    <div class="card">
+      <div class="section-title">Order Details</div>
+      <div class="grid-2">
+        <div class="field">
+          <label>Medication Name</label>
+          <input type="text" name="medication_name" placeholder="Metformin 500mg" required>
+        </div>
+        <div class="field">
+          <label>Primary Diagnosis <span class="hint">ICD-10, e.g. E11.9</span></label>
+          <input type="text" name="primary_diagnosis" placeholder="E11.9" required>
+        </div>
+      </div>
+
+      <!-- Additional Diagnoses -->
+      <div class="field">
+        <label>Additional Diagnoses</label>
+        <div class="tag-list" id="diag-tags"></div>
+        <div class="tag-input-row">
+          <input type="text" id="diag-input" placeholder="e.g. I10 — press Add or Enter">
+          <button type="button" class="btn-add" onclick="addTag('diag')">Add</button>
+        </div>
+      </div>
+
+      <!-- Medication History -->
+      <div class="field">
+        <label>Medication History</label>
+        <div class="tag-list" id="med-tags"></div>
+        <div class="tag-input-row">
+          <input type="text" id="med-input" placeholder="e.g. Aspirin 81mg — press Add or Enter">
+          <button type="button" class="btn-add" onclick="addTag('med')">Add</button>
+        </div>
+      </div>
+
+      <!-- Patient Records -->
+      <div class="field">
+        <label>Patient Records <span class="hint">clinical notes, history</span></label>
+        <textarea name="patient_records" placeholder="Enter relevant clinical notes, history, or context..."></textarea>
+      </div>
+    </div>
+
+    <div id="status-msg">⏳ Submitting…</div>
+    <button type="submit" class="btn-submit" id="submit-btn">Generate Care Plan</button>
+  </form>
+
+  <!-- Result -->
+  <div class="card" id="result-card">
+    <div class="result-header">
+      <div class="section-title" style="margin:0;border:none;padding:0;" id="result-title">Generated Care Plan</div>
+      <span class="badge" id="result-badge"></span>
+    </div>
+    <div class="meta-grid" id="result-meta"></div>
+    <div class="careplan-body" id="result-content"></div>
+  </div>
+
+</div>
+
+<script>
+  // ── Tag (multi-value) fields ──────────────────────────────────────────────
+  const tagData = { diag: [], med: [] };
+
+  function addTag(type) {
+    const input = document.getElementById(`${type}-input`);
+    const val = input.value.trim();
+    if (!val) return;
+    tagData[type].push(val);
+    renderTags(type);
+    input.value = '';
+    input.focus();
+  }
+
+  function removeTag(type, idx) {
+    tagData[type].splice(idx, 1);
+    renderTags(type);
+  }
+
+  function renderTags(type) {
+    const container = document.getElementById(`${type}-tags`);
+    container.innerHTML = tagData[type].map((v, i) =>
+      `<span class="tag">${v}<button type="button" onclick="removeTag('${type}',${i})" title="Remove">×</button></span>`
+    ).join('');
+  }
+
+  // Allow Enter key to add tags
+  ['diag', 'med'].forEach(type => {
+    document.getElementById(`${type}-input`).addEventListener('keydown', e => {
+      if (e.key === 'Enter') { e.preventDefault(); addTag(type); }
+    });
+  });
+
+  // ── Form submit → POST /api/orders/ ──────────────────────────────────────
+  document.getElementById('careplan-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+
+    const form    = e.target;
+    const btn     = document.getElementById('submit-btn');
+    const status  = document.getElementById('status-msg');
+    const errorBox= document.getElementById('error-box');
+    const resultCard = document.getElementById('result-card');
+
+    // Reset UI
+    errorBox.style.display = 'none';
+    resultCard.style.display = 'none';
+    btn.disabled = true;
+    status.style.display = 'block';
+
+    // Build payload
+    const get = name => form.elements[name]?.value?.trim() || '';
+
+    const providerFirstName = get('provider_first_name');
+    const providerLastName  = get('provider_last_name');
+    const providerNpi       = get('provider_npi');
+    const hasProvider       = providerFirstName || providerLastName || providerNpi;
+
+    const payload = {
+      patient: {
+        first_name:    get('first_name'),
+        last_name:     get('last_name'),
+        mrn:           get('mrn')           || undefined,
+        date_of_birth: get('date_of_birth') || undefined,
+      },
+      medication_name:      get('medication_name'),
+      primary_diagnosis:    get('primary_diagnosis'),
+      additional_diagnoses: tagData.diag,
+      medication_history:   tagData.med,
+      patient_records:      get('patient_records'),
+    };
+
+    if (hasProvider) {
+      payload.provider = {
+        first_name: providerFirstName || undefined,
+        last_name:  providerLastName  || undefined,
+        npi:        providerNpi       || undefined,
+      };
+    }
+
+    try {
+      const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]')?.value;
+      const res = await fetch('/api/orders/', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(csrfToken ? { 'X-CSRFToken': csrfToken } : {}),
+        },
+        body: JSON.stringify(payload),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.error || `Server error ${res.status}`);
+      }
+
+      // Render result (async: pending until worker fills content)
+      const cp = data.care_plan;
+      const isPending = cp.status === 'pending';
+
+      document.getElementById('result-title').textContent = isPending
+        ? 'Request received'
+        : 'Generated Care Plan';
+
+      document.getElementById('result-badge').textContent = cp.status;
+      document.getElementById('result-badge').className = `badge ${cp.status}`;
+
+      const careplanId = data.careplan_id != null ? data.careplan_id : cp.id;
+
+      document.getElementById('result-meta').innerHTML = `
+        <div class="meta-item">
+          <div class="meta-label">Care Plan ID</div>
+          <div class="meta-value">#${careplanId}</div>
+        </div>
+        <div class="meta-item">
+          <div class="meta-label">Order ID</div>
+          <div class="meta-value">#${data.order_id}</div>
+        </div>
+        <div class="meta-item">
+          <div class="meta-label">Patient</div>
+          <div class="meta-value">${data.patient.first_name} ${data.patient.last_name}</div>
+        </div>
+        <div class="meta-item">
+          <div class="meta-label">MRN</div>
+          <div class="meta-value">${data.patient.mrn}</div>
+        </div>
+        <div class="meta-item">
+          <div class="meta-label">Medication</div>
+          <div class="meta-value">${data.medication_name}</div>
+        </div>
+        <div class="meta-item">
+          <div class="meta-label">Diagnosis</div>
+          <div class="meta-value">${data.primary_diagnosis}</div>
+        </div>
+        <div class="meta-item">
+          <div class="meta-label">Provider</div>
+          <div class="meta-value">${data.provider.last_name}, ${data.provider.first_name}</div>
+        </div>
+      `;
+
+      document.getElementById('result-content').textContent = isPending
+        ? `${data.message || 'Received'}\n\nCare Plan ID: #${careplanId}\n\nThe care plan will be generated in the background. You can poll GET /api/orders/${data.order_id}/ for updates.`
+        : cp.content;
+      resultCard.style.display = 'block';
+      resultCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+    } catch (err) {
+      errorBox.textContent = `Error: ${err.message}`;
+      errorBox.style.display = 'block';
+    } finally {
+      btn.disabled = false;
+      status.style.display = 'none';
+    }
+  });
+</script>
 </body>
 </html>
