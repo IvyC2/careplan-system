@@ -40,5 +40,20 @@ services:
       redis:
         condition: service_started
 
+  worker:
+    build: .
+    command: celery -A careplan_project worker --loglevel=info
+    volumes:
+      - .:/app
+    env_file:
+      - .env
+    environment:
+      REDIS_URL: redis://redis:6379/0
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_started
+
 volumes:
   postgres_data:

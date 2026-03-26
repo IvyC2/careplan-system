@@ -9,4 +9,7 @@ urlpatterns = [
     # 新 REST API 路由 / New REST API routes
     path('api/orders/', views.api_create_order, name='api_create_order'),
     path('api/orders/<int:order_id>/', views.api_get_order, name='api_get_order'),
+
+    # CarePlan status for polling
+    path('api/careplan/<int:careplan_id>/status/', views.api_careplan_status, name='api_careplan_status'),
 ]

@@ -6,7 +6,7 @@ from django.shortcuts import render
 from django.views.decorators.csrf import csrf_exempt
 from django.http import JsonResponse
 from .models import Patient, Provider, Order, CarePlan
-from .queue import enqueue_careplan
+from .tasks import generate_careplan_task
 
 ANTHROPIC_API_KEY = os.environ.get("CLAUDE_API_KEY")
 
@@ -181,7 +181,7 @@ def generate_careplan(request):
         order=order,
         status=CarePlan.Status.PENDING,
     )
-    enqueue_careplan(care_plan.pk)
+    generate_careplan_task.delay(care_plan.pk)
 
     return JsonResponse(
         {
@@ -283,7 +283,7 @@ def api_create_order(request):
         order=order,
         status=CarePlan.Status.PENDING,
     )
-    enqueue_careplan(care_plan.pk)
+    generate_careplan_task.delay(care_plan.pk)
 
     return JsonResponse(
         {
@@ -374,3 +374,30 @@ def api_get_order(request, order_id):
         'created_at':           order.created_at.isoformat(),
         'care_plan':            care_plan_data,
     })
+
+
+@csrf_exempt
+def api_careplan_status(request, careplan_id: int):
+    """
+    GET /api/careplan/<id>/status/
+    返回 CarePlan 的 status 和 content（仅 completed 返回 content；failed 返回 error）。
+    """
+    if request.method != "GET":
+        return JsonResponse({"error": "Method not allowed"}, status=405)
+
+    try:
+        care_plan = CarePlan.objects.get(pk=careplan_id)
+    except CarePlan.DoesNotExist:
+        return JsonResponse({"error": f"CarePlan {careplan_id} not found"}, status=404)
+
+    payload = {
+        "careplan_id": care_plan.pk,
+        "status": care_plan.status,
+    }
+
+    if care_plan.status == CarePlan.Status.COMPLETED:
+        payload["content"] = care_plan.content
+    elif care_plan.status == CarePlan.Status.FAILED:
+        payload["error"] = care_plan.content
+
+    return JsonResponse(payload)

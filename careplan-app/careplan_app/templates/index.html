@@ -417,18 +417,16 @@
         throw new Error(data.error || `Server error ${res.status}`);
       }
 
-      // Render result (async: pending until worker fills content)
+      // Render result + start polling status
       const cp = data.care_plan;
-      const isPending = cp.status === 'pending';
+      const careplanId = data.careplan_id != null ? data.careplan_id : cp.id;
 
-      document.getElementById('result-title').textContent = isPending
-        ? 'Request received'
-        : 'Generated Care Plan';
-
+      document.getElementById('result-title').textContent = 'Request received';
       document.getElementById('result-badge').textContent = cp.status;
       document.getElementById('result-badge').className = `badge ${cp.status}`;
 
-      const careplanId = data.careplan_id != null ? data.careplan_id : cp.id;
+      document.getElementById('result-content').textContent =
+        `${data.message || 'Received'}\n\nCare Plan ID: #${careplanId}\n\nWaiting for background processing...`;
 
       document.getElementById('result-meta').innerHTML = `
         <div class="meta-item">
@@ -461,9 +459,55 @@
         </div>
       `;
 
-      document.getElementById('result-content').textContent = isPending
-        ? `${data.message || 'Received'}\n\nCare Plan ID: #${careplanId}\n\nThe care plan will be generated in the background. You can poll GET /api/orders/${data.order_id}/ for updates.`
-        : cp.content;
+      let pollTimer = null;
+
+      const stopPolling = () => {
+        if (pollTimer) {
+          clearInterval(pollTimer);
+          pollTimer = null;
+        }
+      };
+
+      const pollCareplanStatus = async () => {
+        try {
+          const res = await fetch(`/api/careplan/${careplanId}/status/`, {
+            method: 'GET',
+            headers: { 'Accept': 'application/json' },
+          });
+
+          const statusData = await res.json();
+          if (!res.ok) {
+            throw new Error(statusData.error || `Server error ${res.status}`);
+          }
+
+          const st = statusData.status;
+
+          document.getElementById('result-badge').textContent = st;
+          document.getElementById('result-badge').className = `badge ${st}`;
+
+          if (st === 'completed') {
+            stopPolling();
+            document.getElementById('result-title').textContent = 'Generated Care Plan';
+            document.getElementById('result-content').textContent = statusData.content || '';
+            return;
+          }
+
+          if (st === 'failed') {
+            stopPolling();
+            document.getElementById('result-title').textContent = 'Request failed';
+            document.getElementById('result-content').textContent =
+              statusData.error || 'Failed to generate care plan.';
+            return;
+          }
+        } catch (pollErr) {
+          stopPolling();
+          errorBox.textContent = `Error: ${pollErr.message}`;
+          errorBox.style.display = 'block';
+          status.style.display = 'none';
+        }
+      };
+
+      pollTimer = setInterval(pollCareplanStatus, 3000);
       resultCard.style.display = 'block';
       resultCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
 

@@ -16,9 +16,13 @@ from pathlib import Path
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-# Redis queue for async care plan generation (docker-compose sets REDIS_URL)
+# Redis and Celery settings (docker-compose sets REDIS_URL)
 REDIS_URL = os.environ.get("REDIS_URL", "redis://127.0.0.1:6379/0")
 CAREPLAN_QUEUE_NAME = "careplan:queue"
+CELERY_BROKER_URL = REDIS_URL
+CELERY_RESULT_BACKEND = REDIS_URL
+CELERY_TASK_TRACK_STARTED = True
+CELERY_TASK_TIME_LIMIT = 300
 
 
 # Quick-start development settings - unsuitable for production
@@ -78,8 +82,6 @@ WSGI_APPLICATION = 'careplan_project.wsgi.application'
 
 # Database
 # https://docs.djangoproject.com/en/5.0/ref/settings/#databases
-
-import os
 
 DATABASES = {
     'default': {
