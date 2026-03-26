@@ -7,6 +7,7 @@ from django.views.decorators.csrf import csrf_exempt
 from django.http import JsonResponse
 from .models import Patient, Provider, Order, CarePlan
 from .tasks import generate_careplan_task
+from .llm import generate_careplan_text
 
 ANTHROPIC_API_KEY = os.environ.get("CLAUDE_API_KEY")
 
@@ -101,48 +102,15 @@ def get_or_create_provider(first_name, last_name, npi=None):
 
 def call_llm(patient_name, medication, diagnosis, additional_diagnoses,
              medication_history, patient_records):
-    """
-    Calls the Claude API and returns the generated care plan text.
-    调用 Claude API，返回生成的护理计划文本。
-    """
-    prompt = f"""
-    Generate a care plan for the following patient:
-    Patient: {patient_name}
-    Medication: {medication}
-    Primary Diagnosis: {diagnosis}
-    Additional Diagnoses: {', '.join(additional_diagnoses) if additional_diagnoses else 'None'}
-    Medication History: {', '.join(medication_history) if medication_history else 'None'}
-    Patient Records: {patient_records or 'None'}
-
-    Please include these sections:
-    Problem List:
-    Goals:
-    Pharmacist Interventions:
-    Monitoring Plan:
-
-    Important: Use only basic ASCII characters. Do not use special characters like em-dashes (--),
-    smart quotes, or any unicode characters. Use regular hyphens (-) and straight quotes instead.
-    """
-
-    response = requests.post(
-        "https://api.anthropic.com/v1/messages",
-        headers={
-            "x-api-key": ANTHROPIC_API_KEY,
-            "anthropic-version": "2023-06-01",
-            "Content-Type": "application/json"
-        },
-        json={
-            "model": "claude-sonnet-4-5",
-            "max_tokens": 1024,
-            "messages": [
-                {"role": "user", "content": prompt}
-            ]
-        }
+    # Backward-compatible wrapper; implementation lives in careplan_app.llm
+    return generate_careplan_text(
+        patient_name=patient_name,
+        medication=medication,
+        diagnosis=diagnosis,
+        additional_diagnoses=additional_diagnoses,
+        medication_history=medication_history,
+        patient_records=patient_records,
     )
-
-    result = response.json()
-    careplan_text = result['content'][0]['text']
-    return careplan_text.encode('ascii', errors='replace').decode('ascii')
 
 
 # -----------------------------------------------------------------------------

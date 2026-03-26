@@ -3,6 +3,7 @@ import logging
 from celery import shared_task
 from django.db import transaction
 
+from .llm import generate_careplan_text
 from .models import CarePlan
 
 logger = logging.getLogger(__name__)
@@ -31,9 +32,7 @@ def generate_careplan_task(self, careplan_id: int) -> dict:
     logger.info("Celery task started: careplan_id=%s", careplan_id)
 
     try:
-        from .views import call_llm
-
-        content = call_llm(
+        content = generate_careplan_text(
             patient_name=f"{patient.first_name} {patient.last_name}",
             medication=order.medication_name,
             diagnosis=order.primary_diagnosis,

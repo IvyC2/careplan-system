@@ -4,6 +4,7 @@ import redis
 from django.conf import settings
 from django.db import transaction
 
+from .llm import generate_careplan_text
 from .models import CarePlan
 
 logger = logging.getLogger(__name__)
@@ -48,11 +49,8 @@ def process_one_careplan_task() -> bool:
     patient = order.patient
 
     try:
-        # Import lazily to avoid circular import at module load time.
-        from .views import call_llm
-
         logger.info("Starting LLM call: careplan_id=%s", careplan_id)
-        content = call_llm(
+        content = generate_careplan_text(
             patient_name=f"{patient.first_name} {patient.last_name}",
             medication=order.medication_name,
             diagnosis=order.primary_diagnosis,

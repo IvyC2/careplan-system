@@ -24,6 +24,13 @@ CELERY_RESULT_BACKEND = REDIS_URL
 CELERY_TASK_TRACK_STARTED = True
 CELERY_TASK_TIME_LIMIT = 300
 
+# SECURITY WARNING: don't run with debug turned on in production!
+DEBUG = True
+
+# Development/testing: set MOCK_LLM=1 to avoid real LLM calls.
+# Default: enabled in DEBUG, disabled otherwise.
+MOCK_LLM = os.environ.get("MOCK_LLM", "1" if DEBUG else "0").lower() in ("1", "true", "yes", "on")
+
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.0/howto/deployment/checklist/
@@ -31,8 +38,7 @@ CELERY_TASK_TIME_LIMIT = 300
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = 'django-insecure-(!!k(k+&=bysx5of6f_kyox28r4=!z2e(4_xnqjpu!6pw6$3w&'
 
-# SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+
 
 ALLOWED_HOSTS = []
 
