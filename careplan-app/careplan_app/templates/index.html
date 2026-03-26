@@ -466,7 +466,11 @@
           clearInterval(pollTimer);
           pollTimer = null;
         }
+        window.removeEventListener('beforeunload', stopPolling);
       };
+
+      // Cleanup: if user navigates away / closes tab, stop the interval.
+      window.addEventListener('beforeunload', stopPolling);
 
       const pollCareplanStatus = async () => {
         try {

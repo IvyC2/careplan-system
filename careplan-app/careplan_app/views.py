@@ -185,7 +185,7 @@ def generate_careplan(request):
 
     return JsonResponse(
         {
-            'message': '已收到',
+            'message': 'Received',
             'careplan_id': care_plan.pk,
             'order_id': order.pk,
             'care_plan': {
