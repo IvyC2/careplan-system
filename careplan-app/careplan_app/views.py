@@ -60,11 +60,14 @@ def api_create_order(request):
         return JsonResponse({'error': 'Invalid JSON'}, status=400)
 
     data = serializers.parse_create_order_body(body)
+    confirm = bool(body.get('confirm', False))
 
-    patient = services.get_or_create_patient(**data['patient'])
+    serializers.validate_order_input(data)  # raises ValidationError → middleware
+
+    patient = services.get_or_create_patient(**data['patient'])  # raises BlockError / WarningException → middleware
 
     if data['provider'] is not None:
-        provider = services.get_or_create_provider(**data['provider'])
+        provider = services.get_or_create_provider(**data['provider'])  # raises BlockError → middleware
     else:
         provider = services.get_or_create_default_provider()
 
@@ -76,7 +79,9 @@ def api_create_order(request):
         additional_diagnoses=data['additional_diagnoses'],
         medication_history=data['medication_history'],
         patient_records=data['patient_records'],
-    )
+        confirm=body.get('confirm', False),
+    )  # raises BlockError / WarningException → middleware
+
     return JsonResponse(
         serializers.serialize_create_order_response(patient, provider, order, care_plan),
         status=201,

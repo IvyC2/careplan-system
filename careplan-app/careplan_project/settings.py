@@ -57,6 +57,7 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
+    'careplan_app.exception_handler.AppExceptionMiddleware',  # unified app exception → JSON
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -64,6 +65,11 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
+
+# If DRF is added later, plug in the same handler:
+# REST_FRAMEWORK = {
+#     'EXCEPTION_HANDLER': 'careplan_app.exception_handler.handle_exception',
+# }
 
 ROOT_URLCONF = 'careplan_project.urls'
 
