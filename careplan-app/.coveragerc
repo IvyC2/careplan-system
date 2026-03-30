@@ -1,0 +1,6 @@
+[run]
+omit =
+    careplan_app/llm.py
+    careplan_app/queue.py
+    careplan_app/tasks.py
+    careplan_app/migrations/*
