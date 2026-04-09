@@ -4,6 +4,7 @@ from django.views.decorators.csrf import csrf_exempt
 from django.http import JsonResponse
 from .models import Order, CarePlan
 from . import services, serializers
+from .intake_adapters import get_adapter
 
 
 # -----------------------------------------------------------------------------
@@ -59,28 +60,38 @@ def api_create_order(request):
     except json.JSONDecodeError:
         return JsonResponse({'error': 'Invalid JSON'}, status=400)
 
-    data = serializers.parse_create_order_body(body)
     confirm = bool(body.get('confirm', False))
+    source  = body.get('source', 'webform')
 
-    serializers.validate_order_input(data)  # raises ValidationError → middleware
-
-    patient = services.get_or_create_patient(**data['patient'])  # raises BlockError / WarningException → middleware
-
-    if data['provider'] is not None:
-        provider = services.get_or_create_provider(**data['provider'])  # raises BlockError → middleware
+    if source != 'webform':
+        # Adapter path: clinic / pharma / ...
+        adapter = get_adapter(source)           # raises ValidationError for unknown source
+        internal_order = adapter.parse(body)    # maps fields + validates format
+        patient, provider, order, care_plan = services.create_order_from_internal(
+            internal_order, confirm=confirm,
+        )
     else:
-        provider = services.get_or_create_default_provider()
+        # Webform path: existing flow unchanged
+        data = serializers.parse_create_order_body(body)
+        serializers.validate_order_input(data)  # raises ValidationError → middleware
 
-    order, care_plan = services.create_order_and_careplan(
-        patient=patient,
-        provider=provider,
-        medication_name=data['medication_name'],
-        primary_diagnosis=data['primary_diagnosis'],
-        additional_diagnoses=data['additional_diagnoses'],
-        medication_history=data['medication_history'],
-        patient_records=data['patient_records'],
-        confirm=body.get('confirm', False),
-    )  # raises BlockError / WarningException → middleware
+        patient = services.get_or_create_patient(**data['patient'])  # raises BlockError / WarningException → middleware
+
+        if data['provider'] is not None:
+            provider = services.get_or_create_provider(**data['provider'])  # raises BlockError → middleware
+        else:
+            provider = services.get_or_create_default_provider()
+
+        order, care_plan = services.create_order_and_careplan(
+            patient=patient,
+            provider=provider,
+            medication_name=data['medication_name'],
+            primary_diagnosis=data['primary_diagnosis'],
+            additional_diagnoses=data['additional_diagnoses'],
+            medication_history=data['medication_history'],
+            patient_records=data['patient_records'],
+            confirm=confirm,
+        )  # raises BlockError / WarningException → middleware
 
     return JsonResponse(
         serializers.serialize_create_order_response(patient, provider, order, care_plan),

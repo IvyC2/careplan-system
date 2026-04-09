@@ -169,6 +169,45 @@ def check_order_duplicate(patient, medication_name, confirm=False):
             )
 
 
+def create_order_from_internal(internal_order, confirm=False):
+    """
+    接收 InternalOrder（来自 adapter），执行完整业务流程：
+    患者/提供者查找或创建 → 重复检测 → 创建订单和护理计划。
+    返回 (patient, provider, order, care_plan)。
+    """
+    parts = (internal_order.provider_name or '').split(' ', 1)
+    provider_first = parts[0]
+    provider_last  = parts[1] if len(parts) > 1 else ''
+
+    patient = get_or_create_patient(
+        first_name=internal_order.first_name,
+        last_name=internal_order.last_name,
+        mrn=internal_order.mrn,
+        date_of_birth=internal_order.date_of_birth,
+    )
+
+    if internal_order.npi or provider_first or provider_last:
+        provider = get_or_create_provider(
+            first_name=provider_first,
+            last_name=provider_last,
+            npi=internal_order.npi,
+        )
+    else:
+        provider = get_or_create_default_provider()
+
+    order, care_plan = create_order_and_careplan(
+        patient=patient,
+        provider=provider,
+        medication_name=internal_order.medication_name,
+        primary_diagnosis=internal_order.primary_diagnosis,
+        additional_diagnoses=internal_order.additional_diagnoses,
+        medication_history=[],
+        patient_records=internal_order.patient_records,
+        confirm=confirm,
+    )
+    return patient, provider, order, care_plan
+
+
 def create_order_and_careplan(patient, provider, medication_name, primary_diagnosis,
                                additional_diagnoses, medication_history, patient_records,
                                confirm=False):
