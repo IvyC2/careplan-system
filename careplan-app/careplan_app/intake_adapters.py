@@ -190,3 +190,38 @@ def get_adapter(source: str) -> BaseIntakeAdapter:
         known = ', '.join(_REGISTRY)
         raise ValidationError(f"Unknown source '{source}'. Known sources: {known}")
     return adapter_cls()
+
+
+
+# ---------------------------------------------------------------------------
+# 具体 Adapter — Hospital System（Dict）
+# ---------------------------------------------------------------------------
+
+class HospitalAdapter(BaseIntakeAdapter):
+    """
+    字段映射:
+        pt_given_name        → first_name
+        pt_family_name       → last_name
+        pt_medical_id        → mrn
+        pt_birth_date        → date_of_birth
+        attending_physician  → provider_name
+        physician_npi_code   → npi
+        prescribed_drug      → medication_name
+        primary_icd10        → primary_diagnosis
+        secondary_icd10_list → additional_diagnoses
+        clinical_summary     → patient_records
+    """
+
+    def _map(self, raw_data: dict) -> dict:
+        return {
+            'first_name':           raw_data.get('pt_given_name', ''),
+            'last_name':            raw_data.get('pt_family_name', ''),
+            'mrn':                  raw_data.get('pt_medical_id'),
+            'date_of_birth':        raw_data.get('pt_birth_date'),
+            'provider_name':        raw_data.get('attending_physician', ''),
+            'npi':                  raw_data.get('physician_npi_code'),
+            'medication_name':      raw_data.get('prescribed_drug', ''),
+            'primary_diagnosis':    raw_data.get('primary_icd10', ''),
+            'additional_diagnoses': raw_data.get('secondary_icd10_list', []),
+            'patient_records':      raw_data.get('clinical_summary', ''),
+        }

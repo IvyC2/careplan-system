@@ -1,6 +1,6 @@
 import os
-
 import requests
+from abc import ABC, abstractmethod
 from django.conf import settings
 
 
@@ -25,34 +25,30 @@ Monitoring Plan:
 """
 
 
-def should_use_mock_llm() -> bool:
-    # Prefer explicit env override; otherwise default to settings.
-    env = os.environ.get("MOCK_LLM")
-    if env is not None:
-        return env.lower() in ("1", "true", "yes", "on")
-    return bool(getattr(settings, "MOCK_LLM", False))
+class BaseLLMService(ABC):
+
+    @abstractmethod
+    def generate(self, *, patient_name, medication, diagnosis,
+                 additional_diagnoses, medication_history, patient_records) -> str:
+        pass
 
 
-def generate_careplan_text(
-    *,
-    patient_name: str,
-    medication: str,
-    diagnosis: str,
-    additional_diagnoses: list,
-    medication_history: list,
-    patient_records: str,
-) -> str:
-    """
-    Generate care plan text via mock or real LLM depending on configuration.
-    """
-    if should_use_mock_llm():
+class MockService(BaseLLMService):
+
+    def generate(self, *, patient_name, medication, diagnosis,
+                 additional_diagnoses, medication_history, patient_records) -> str:
         return MOCK_CAREPLAN_TEXT
 
-    anthropic_api_key = os.environ.get("CLAUDE_API_KEY")
-    if not anthropic_api_key:
-        raise RuntimeError("CLAUDE_API_KEY is not set")
 
-    prompt = f"""
+class ClaudeService(BaseLLMService):
+
+    def generate(self, *, patient_name, medication, diagnosis,
+                 additional_diagnoses, medication_history, patient_records) -> str:
+        anthropic_api_key = os.environ.get("CLAUDE_API_KEY")
+        if not anthropic_api_key:
+            raise RuntimeError("CLAUDE_API_KEY is not set")
+
+        prompt = f"""
 Generate a care plan for the following patient:
 Patient: {patient_name}
 Medication: {medication}
@@ -70,24 +66,33 @@ Monitoring Plan:
 Important: Use only basic ASCII characters. Do not use special characters like em-dashes (--),
 smart quotes, or any unicode characters. Use regular hyphens (-) and straight quotes instead.
 """
+        response = requests.post(
+            "https://api.anthropic.com/v1/messages",
+            headers={
+                "x-api-key": anthropic_api_key,
+                "anthropic-version": "2023-06-01",
+                "Content-Type": "application/json",
+            },
+            json={
+                "model": "claude-sonnet-4-5",
+                "max_tokens": 1024,
+                "messages": [{"role": "user", "content": prompt}],
+            },
+            timeout=60,
+        )
+        response.raise_for_status()
 
-    response = requests.post(
-        "https://api.anthropic.com/v1/messages",
-        headers={
-            "x-api-key": anthropic_api_key,
-            "anthropic-version": "2023-06-01",
-            "Content-Type": "application/json",
-        },
-        json={
-            "model": "claude-sonnet-4-5",
-            "max_tokens": 1024,
-            "messages": [{"role": "user", "content": prompt}],
-        },
-        timeout=60,
-    )
-    response.raise_for_status()
+        result = response.json()
+        careplan_text = result["content"][0]["text"]
+        return careplan_text.encode("ascii", errors="replace").decode("ascii")
 
-    result = response.json()
-    careplan_text = result["content"][0]["text"]
-    return careplan_text.encode("ascii", errors="replace").decode("ascii")
 
+def get_llm_service() -> BaseLLMService:
+    providers = {
+        "claude": ClaudeService(),
+        "mock": MockService(),
+    }
+    provider_name = os.environ.get("LLM_PROVIDER", "claude")
+    if provider_name not in providers:
+        raise ValueError(f"Unknown LLM provider: {provider_name}")
+    return providers[provider_name]
