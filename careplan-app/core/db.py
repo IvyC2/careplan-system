@@ -245,7 +245,8 @@ class PostgresDB(DBInterface):
         self._conn = conn
 
     def _cur(self):
-        return self._conn.cursor()
+        import psycopg2.extras
+        return self._conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
 
     # --- Provider ---
 
@@ -258,7 +259,7 @@ class PostgresDB(DBInterface):
             )
             row = cur.fetchone()
             if row:
-                return ProviderRow(pk=row[0], first_name=row[1], last_name=row[2], npi=row[3]), False
+                return ProviderRow(pk=row['id'], first_name=row['first_name'], last_name=row['last_name'], npi=row['npi']), False
 
             first_name = defaults.get("first_name", "")
             last_name = defaults.get("last_name", "")
@@ -267,7 +268,7 @@ class PostgresDB(DBInterface):
                 " VALUES (%s, %s, %s) RETURNING id",
                 (npi, first_name, last_name),
             )
-            pk = cur.fetchone()[0]
+            pk = cur.fetchone()['id']
             self._conn.commit()
             return ProviderRow(pk=pk, first_name=first_name, last_name=last_name, npi=npi), True
 
@@ -280,7 +281,7 @@ class PostgresDB(DBInterface):
             )
             row = cur.fetchone()
             if row:
-                return ProviderRow(pk=row[0], first_name=row[1], last_name=row[2], npi=row[3])
+                return ProviderRow(pk=row['id'], first_name=row['first_name'], last_name=row['last_name'], npi=row['npi'])
             return None
 
     def filter_provider_by_name(self, first_name: str, last_name: str) -> Optional[ProviderRow]:
@@ -293,7 +294,7 @@ class PostgresDB(DBInterface):
             )
             row = cur.fetchone()
             if row:
-                return ProviderRow(pk=row[0], first_name=row[1], last_name=row[2], npi=row[3])
+                return ProviderRow(pk=row['id'], first_name=row['first_name'], last_name=row['last_name'], npi=row['npi'])
             return None
 
     def provider_npi_exists(self, npi: str) -> bool:
@@ -308,7 +309,7 @@ class PostgresDB(DBInterface):
                 " VALUES (%s, %s, %s) RETURNING id",
                 (first_name, last_name, npi),
             )
-            pk = cur.fetchone()[0]
+            pk = cur.fetchone()['id']
             self._conn.commit()
             return ProviderRow(pk=pk, first_name=first_name, last_name=last_name, npi=npi)
 
@@ -323,8 +324,8 @@ class PostgresDB(DBInterface):
             )
             row = cur.fetchone()
             if row:
-                return PatientRow(pk=row[0], first_name=row[1], last_name=row[2],
-                                  mrn=row[3], date_of_birth=row[4])
+                return PatientRow(pk=row['id'], first_name=row['first_name'], last_name=row['last_name'],
+                                  mrn=row['mrn'], date_of_birth=row['date_of_birth'])
             return None
 
     def filter_patient_by_name_dob(
@@ -339,8 +340,8 @@ class PostgresDB(DBInterface):
             )
             row = cur.fetchone()
             if row:
-                return PatientRow(pk=row[0], first_name=row[1], last_name=row[2],
-                                  mrn=row[3], date_of_birth=row[4])
+                return PatientRow(pk=row['id'], first_name=row['first_name'], last_name=row['last_name'],
+                                  mrn=row['mrn'], date_of_birth=row['date_of_birth'])
             return None
 
     def filter_patient_by_name(self, first_name: str, last_name: str) -> Optional[PatientRow]:
@@ -353,8 +354,8 @@ class PostgresDB(DBInterface):
             )
             row = cur.fetchone()
             if row:
-                return PatientRow(pk=row[0], first_name=row[1], last_name=row[2],
-                                  mrn=row[3], date_of_birth=row[4])
+                return PatientRow(pk=row['id'], first_name=row['first_name'], last_name=row['last_name'],
+                                  mrn=row['mrn'], date_of_birth=row['date_of_birth'])
             return None
 
     def patient_mrn_exists(self, mrn: str) -> bool:
@@ -371,7 +372,7 @@ class PostgresDB(DBInterface):
                 " VALUES (%s, %s, %s, %s) RETURNING id",
                 (first_name, last_name, mrn, date_of_birth),
             )
-            pk = cur.fetchone()[0]
+            pk = cur.fetchone()['id']
             self._conn.commit()
             return PatientRow(pk=pk, first_name=first_name, last_name=last_name,
                               mrn=mrn, date_of_birth=date_of_birth)
@@ -389,7 +390,7 @@ class PostgresDB(DBInterface):
             )
             row = cur.fetchone()
             if row:
-                return OrderRow(pk=row[0], created_at=row[1])
+                return OrderRow(pk=row['id'], created_at=row['created_at'])
             return None
 
     def filter_order_previous(self, patient: Any, medication_name: str) -> Optional[OrderRow]:
@@ -401,7 +402,7 @@ class PostgresDB(DBInterface):
             )
             row = cur.fetchone()
             if row:
-                return OrderRow(pk=row[0], created_at=row[1])
+                return OrderRow(pk=row['id'], created_at=row['created_at'])
             return None
 
     def create_order(
@@ -433,7 +434,7 @@ class PostgresDB(DBInterface):
             )
             row = cur.fetchone()
             self._conn.commit()
-            return OrderRow(pk=row[0], created_at=row[1])
+            return OrderRow(pk=row['id'], created_at=row['created_at'])
 
     # --- CarePlan ---
 
@@ -445,6 +446,6 @@ class PostgresDB(DBInterface):
                 " VALUES (%s, %s, '', NOW(), NOW()) RETURNING id",
                 (order.pk, status),
             )
-            pk = cur.fetchone()[0]
+            pk = cur.fetchone()['id']
             self._conn.commit()
             return CarePlanRow(pk=pk)

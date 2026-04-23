@@ -1,7 +1,6 @@
 import os
 import requests
 from abc import ABC, abstractmethod
-from django.conf import settings
 
 
 MOCK_CAREPLAN_TEXT = """\
@@ -44,9 +43,10 @@ class ClaudeService(BaseLLMService):
 
     def generate(self, *, patient_name, medication, diagnosis,
                  additional_diagnoses, medication_history, patient_records) -> str:
-        anthropic_api_key = os.environ.get("CLAUDE_API_KEY")
+        # LLM_API_KEY (Lambda convention) takes precedence; fall back to CLAUDE_API_KEY (Django convention)
+        anthropic_api_key = os.environ.get("LLM_API_KEY") or os.environ.get("CLAUDE_API_KEY")
         if not anthropic_api_key:
-            raise RuntimeError("CLAUDE_API_KEY is not set")
+            raise RuntimeError("LLM_API_KEY (or CLAUDE_API_KEY) is not set")
 
         prompt = f"""
 Generate a care plan for the following patient:
